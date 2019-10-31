@@ -1,0 +1,6 @@
+[submodule "bundler"]
+	path = bundler
+	url = https://github.com/bundler-project/bundler
+[submodule "nimbus"]
+	path = nimbus
+	url = https://github.com/ccp-project/nimbus
