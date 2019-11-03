@@ -1,6 +1,12 @@
 all: bundler-procs
 
-bundler-procs: bundler/target/debug/inbox bundler/target/debug/outbox
+bundler-procs: bin/inbox bin/outbox
+	
+bin/inbox: bundler/target/debug/inbox 
+	cp bundler/target/debug/inbox bin/inbox
+	
+bin/outbox: bundler/target/debug/outbox
+	cp bundler/target/debug/outbox bin/outbox
 
 rustup.sh:
 	curl https://sh.rustup.rs -sSf > rustup.sh
@@ -19,6 +25,3 @@ bundler/target/debug/inbox bundler/target/debug/outbox: ~/.cargo/bin/cargo $(she
 
 nimbus/target/debug/nimbus: ~/.cargo/bin/cargo $(shell find nimbus/src -name "*.rs")
 	cd nimbus && ~/.cargo/bin/cargo build
-
-install: bundler-procs setup.py
-	pip install .
