@@ -142,6 +142,14 @@ class Bundler:
         self._start_ccp(cc_alg, config)
         self._start_outbox(config)
 
+    def update_outgoing_filter(self, new_filter):
+        # todo akshay -- do we need to remove the existing filter?
+        if not self.actiavted:
+            raise BundlerException("bundler not active. cannot update filter if bundler is not activated yet.")
+        self.shell.expect(self.shell.run(
+            new_filter.tc_command,
+            sudo=True,
+        ), "failed to update outgoing filter")
 
     def deactivate(self):
         """
@@ -328,7 +336,8 @@ def make_filter(
 
     This function does not actually apply any commands, so it can be called repeatedly to adjust
     the portranges as desired. Once the caller is happy with the generated ranges, they can be
-    used in the config for bundler.activate()
+    used in the config for bundler.activate() or to update the outgoing filter in
+    bundler.update_outgoing_filter()
     """
     if protocol == "tcp":
         proto = 6
