@@ -28,6 +28,23 @@ def make_filter(
         src_portrange: Tuple[int, int],
         dst_portrange: Tuple[int, int],
     ) -> Tuple[str, Tuple[Tuple[int, int], Tuple[int, int]]]:
+    """make_filter helps construct an invocation of tc.
+
+    # Arguments
+    - src_ip and dst_ip should be of the form "x.x.x.x/x"; i.e., to match on all IP addresses
+    callers should pass "0.0.0.0/0".
+    - protocol should be either "tcp" or "udp".
+    - src_portrange and dst_portrange are of the form [min_port, max_port] (inclusive).
+
+    # Return Value
+    Because tc uses bitmasking to express port ranges, this function converts from the [min, max] format.
+    In the conversion, the portrange may change. This function therefore returns the new port ranges as the
+    second return value as follows:
+
+    (invocation_string, (new_src_portrange, new_dst_portrange))
+
+    If the new portranges are acceptable, callers can pass invocation_string to apply_filter() to apply it.
+    """
     if protocol == "tcp":
         proto = 6
     elif protocol == "udp":
@@ -57,4 +74,6 @@ def make_filter(
     return (filter_str, (sport_range, dport_range))
 
 def apply_filter(filter_str):
+    """Takes the first return value of make_filter().
+    """
     subprocess.call(filter_str)
