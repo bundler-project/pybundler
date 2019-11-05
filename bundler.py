@@ -1,30 +1,41 @@
-from util import CommandRunner
 import os
+import util
 from collections import namedtuple
+from typing import List, Tuple
 
 """
 Example of how to use Bundler API.
 
-```
-bundler = Bundler("/path/to/bin/", "/path/to/log", logf=(lambda msg: print(msg)))
-cc_alg = CCAlg('nimbus', param="val", param2="val2", param3="val3")
-config = BundlerRoutingConfig(
-    key=val,
-    key=val,
-)
-bundler.activate(cc_alg, config)
-
-...
-
-# make sure bundler is still running
-bundler.check_alive()
-
-...
-
-# done with bundler
-bundler.deactivate()
-```
+>>> from bundler import Bundler, CCAlg, BundlerConfig, Filter, make_filter
+>>>
+>>> bundler = Bundler("/path/to/bin/", "/path/to/log", logf=(lambda msg: print(msg)))
+>>> cc_alg = CCAlg('nimbus', param="val", param2="val2", param3="val3")
+>>> outgoing_filter = make_filter(...)
+>>> incoming_filter = make_filter(...)
+>>> # check to make sure *_filter.sport_range and outgoing_filter.dport_range are ok
+>>> config = BundlerRoutingConfig(
+>>>    outgoing_filter=outgoing_filter,
+>>>    incoming_filter=incoming_filter,
+>>>    key=val,
+>>>    ...
+>>> )
+>>> # all of the above functions simply construct commands but do not run them. the following
+>>> # command runs everything.
+>>> bundler.activate(cc_alg, config)
+>>>
+>>> ...
+>>>
+>>> # make sure bundler is still running
+>>> bundler.check_alive()
+>>>
+>>> ...
+>>>
+>>> # done with bundler
+>>> bundler.deactivate()
 """
+
+
+
 class BundlerException(Exception):
     """
     Indicates some sort of problem with bundler. Contains a single parameter, a string describing
@@ -48,41 +59,39 @@ class CCAlg:
         self.name = name
         self.kwargs = kwargs
 
-
-#class BundlerConfig:
-#    """
-#    Convenience wrapper for describing all parameters for bundler
-#
-#    (network setup)
-#    :param outgoing_iface      network interface (eg. eth0) that inbox should attach to
-#    :param incoming_iface      network interface (eg. eth0) that outbox should listen for pkts on
-#    :param inbox_inband_port   port inbox will listen on for feedback from outbox
-#    :param outbox_inband_port  port outbox will listen on for sample rate updates from inbox
-#    :param other_inbox         string ip:port describing how to reach other inbox
-#    :param other_inbox_ports   (int,int) tuple range of ports describing where outbox should listen
-#
-#    (internal parameters)
-#    :param initial_sample_rate must be power of 2, e.g. 128
-#    :param qdisc_buffer_size   string, e.g. 15Mbit describing total size of internal bundler queue
-#
-#    """
-#    def __init__(self, **kwargs):
-#
-#        for param in params:
-#            if not param in kwargs:
-#                raise BundlerException('config missing key {}'.format(param))
-#        self.kwargs = kwargs
-#        print(self.kwargs)
-
+"""
+:param outgoing_iface  network interface (eg. eth0) that inbox should attach to
+:param outgoing_filter Filter object describing exactly which outgoing packets should be routed through bundler
+:param incoming_iface  network interface (eg. eth0) that outbox should listen for pkts on
+:param incoming_filter Filter object describing exactly which incoming packets are controlled by a remote bundler
+:param inbox_listen_addr The address, in ip:port format, that the inbox should listen on for reports from the remote outbox
+:param outbox_send_addr The address, in ip:port format, of the remote inbox that the outbox should send rate updates to
+:param initial_sample_rate The initial rate at which bundler will sample packets. Higher data transfer rates allow for higher sampling rates (and thus less overhead) without loss of performance. 
+:param qdisc_buffer_size string, eg. "15Mbit" describing total size of the internal bundler queue
+"""
 BundlerConfig = namedtuple('BundlerConfig', [
     'outgoing_iface',
+    'outgoing_filter',
     'incoming_iface',
-    'inbox_inband_port',
-    'outbox_inband_port',
+    'incoming_filter',
+    'inbox_listen_addr',
+    'outbox_send_addr',
     'initial_sample_rate',
     'qdisc_buffer_size',
-    'other_inbox',
-    'other_inbox_ports'
+])
+
+Filter = namedtuple('Filter', [
+    'src_ip',
+    'sport',
+    'sport_mask',
+    'sport_range',
+    'dst_ip',
+    'dport',
+    'dport_mask',
+    'dport_range',
+    'proto',
+    'tc_command',
+    'pcap_command'
 ])
 
 
@@ -104,7 +113,7 @@ class Bundler:
         self.bin_dir = bin_dir
         self.log_dir = log_dir
 
-        self.shell = CommandRunner(dry=dry, log=logf)
+        self.shell = util.CommandRunner(dry=dry, log=logf)
 
         self.running_logs = []
         self.running_procs = []
@@ -129,6 +138,7 @@ class Bundler:
         self.activated = True
 
         self._start_inbox(config)
+        self._add_filters(config)
         self._start_ccp(cc_alg, config)
         self._start_outbox(config)
 
@@ -171,9 +181,10 @@ class Bundler:
         return False
 
     def _remove_all_filters(self):
-        # TODO Akshay
-        if False:
-            raise BundlerException("failed to removea all filters")
+        # TODO akshay?
+        self.shell.expect(self.shell.run(
+            "some commannd string"
+        ), "failed to remove all filters")
 
     def _kill_all(self):
         proc_regex = "|".join(self.running_procs)
@@ -183,12 +194,10 @@ class Bundler:
         self.running_logs = []
         self.running_procs = []
 
-
     def _get_log_path(self, proc):
         return os.path.join(self.log_dir, proc + ".log")
     def _get_bin_path(self, proc):
         return os.path.join(self.bin_dir, proc)
-
 
     def _start_inbox(self, config):
         outfile = self._get_log_path("inbox")
@@ -197,7 +206,7 @@ class Bundler:
             "{path} --iface={iface} --port={port} --sample_rate={sample} --qtype={qtype} --buffer={buf}".format(
                 path=self._get_bin_path("inbox"),
                 iface=config.outgoing_iface,
-                port=config.inbox_inband_port,
+                port=config.inbox_listen_addr.split(":")[1],
                 sample=config.initial_sample_rate,
                 qtype="prio",
                 buf=config.qdisc_buffer_size,
@@ -214,6 +223,31 @@ class Bundler:
         self.running_logs.append(outfile)
         self.running_procs.append('inbox')
         
+    def _add_filters(self, config):
+        outfile = self._get_log_path("tc")
+
+        with open(outfile, 'a') as f:
+            f.write("> " + config.outgoing_filter.tc_command + "\n")
+        self.shell.expect(self.shell.run(
+            config.outgoing_filter.tc_command,
+            sudo=True,
+            stdout=outfile,
+            stderr=outfile,
+        ), "failed to insert bundler traffic tc filter")
+
+        catch_all_filter = "tc filter add dev {iface} parent 1: protocol all prio 7 u32 match 32 0 0 flowid 1:3".format(
+            iface=config.outgoing_iface
+        )
+        with open(outfile, 'a') as f:
+            f.write("> " + catch_all_filter + "\n")
+        self.shell.expect(self.shell.run(
+            catch_all_filter,
+            sudo=True,
+            stdout=outfile,
+            stderr=outfile,
+        ), "failed to insert catch-all tc filter")
+
+
     def _start_ccp(self, cc_alg, config):
         """
         Starts CCP. 
@@ -224,7 +258,7 @@ class Bundler:
         """
 
         outfile = self._get_log_path("ccp")
-        cmd_args = ["--{arg}=\"{val}\"".format(arg=arg,val=val) for arg, val in cc_alg.kwargs.items()]
+        cmd_args = [f"--{arg}=\"{val}\"" for arg, val in cc_alg.kwargs.items()]
 
         path = self._get_bin_path(cc_alg.name)
         self.shell.expect(self.shell.run(
@@ -251,12 +285,9 @@ class Bundler:
         self.shell.expect(self.shell.run(
             "{path} --filter \"{pcap_filter}\" --iface {iface} --inbox {inbox_addr} --sample_rate {sample_rate}".format(
                 path=self._get_bin_path("outbox"),
-                # TODO Akshay do we also need to handle multiple ranges here?
-                pcap_filter="src portrange {}-{}".format(
-                    *config.other_inbox_ports
-                ),
+                pcap_filter=config.incoming_filter.pcap_command,
                 iface=config.incoming_iface,
-                inbox_addr=config.other_inbox,
+                inbox_addr=config.outbox_send_addr,
                 sample_rate=config.initial_sample_rate,
             ),
             sudo=True,
@@ -270,4 +301,84 @@ class Bundler:
         self.running_logs.append(outfile)
         self.running_procs.append('outbox')
 
+def make_filter(
+        src_ip: str,
+        dst_ip: str,
+        protocol: str,
+        src_portrange: Tuple[int, int],
+        dst_portrange: Tuple[int, int],
+    ) -> Tuple[str, Tuple[Tuple[int, int], Tuple[int, int]]]:
+    """make_filter helps construct a filter for bundler that is amenable to both tc and pcap
+
+    :param src_ip should be of the form "x.x.x.x/x"; i.e., to match on all IP addresses
+    callers should pass "0.0.0.0/0".
+    :param dst_ip same as src_ip.
+    :param protocol should be either "tcp" or "udp".
+    :param src_portrange are of the form [min_port, max_port] (inclusive).
+    :param dst_portrange same as src_portrange.
+
+    # Return Value
+    This function returns a filter object that bundler knows how to install.
+    Because tc uses bitmasking to express port ranges, it may not be possible to achieve exactly 
+    the range requested in the parameters. This function does its best to keep as close as possible
+    to the ranges during the conversion process. The caller should check the actual port ranges
+    generated and make sure they are acceptable, eg.
+    >>> outgoing_filter = make_filter(...)
+    >>> print(outgoing_filter.sport_range, outgoing_filter.dport_range)
+
+    This function does not actually apply any commands, so it can be called repeatedly to adjust
+    the portranges as desired. Once the caller is happy with the generated ranges, they can be
+    used in the config for bundler.activate()
+    """
+    if protocol == "tcp":
+        proto = 6
+    elif protocol == "udp":
+        proto = 17
+    else:
+        raise Exception(f"unknown protocol {protocol}, must be (tcp|udp)")
+
+    def _range_from_mask(n, mask):
+        return (n, n | (~mask & 0xffff))
+
+    def _mask(start, end):
+        """Return the mask that matches the range [start, end).
+
+        >>> _mask(5000, 6000)
+        61440
+        """
+        mask = 0x8000
+        while _range_from_mask(start, mask)[1] > end:
+            mask = mask | (mask >> 1)
+        mask = (mask << 1) & 0xffff
+        return (hex(mask), _range_from_mask(start, mask))
+
+    s = src_portrange[0]
+    d = src_portrange[1]
+    sport_mask, sport_range = _mask(s, d)
+    sport, sport_mask = (s, sport_mask)
+    s = dst_portrange[0]
+    d = dst_portrange[1]
+    dport_mask, dport_range = _mask(s, d)
+    dport, dport_mask = (s, dport_mask)
+
+    tc_command = f"\
+        tc filter add dev 10gp1 \
+        parent 1: \
+        protocol ip prio 6 \
+        u32 \
+        protocol {proto} 0xff \
+        match ip src {src_ip} \
+        match ip dst {dst_ip} \
+        match ip sport {sport} {sport_mask} \
+        match dport {dport} {dport_mask} \
+        flowid 1:2"
+
+    # TODO akshay?
+    pcap_command = ""
+
+    f = Filter(src_ip=src_ip, sport=sport, sport_mask=sport_mask, sport_range=sport_range,
+           dst_ip=dst_ip, dport=dport, dport_mask=dport_mask, dport_range=dport_range,
+           proto=proto, tc_command=tc_command, pcap_command=pcap_command)
+
+    return f
 
