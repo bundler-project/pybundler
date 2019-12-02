@@ -66,7 +66,7 @@ class CCAlg:
 :param incoming_filter Filter object describing exactly which incoming packets are controlled by a remote bundler
 :param inbox_listen_addr The address, in ip:port format, that the inbox should listen on for reports from the remote outbox
 :param outbox_send_addr The address, in ip:port format, of the remote inbox that the outbox should send rate updates to
-:param initial_sample_rate The initial rate at which bundler will sample packets. Higher data transfer rates allow for higher sampling rates (and thus less overhead) without loss of performance. 
+:param initial_sample_rate The initial rate at which bundler will sample packets. Higher data transfer rates allow for higher sampling rates (and thus less overhead) without loss of performance.
 :param qdisc_buffer_size string, eg. "15Mbit" describing total size of the internal bundler queue
 """
 BundlerConfig = namedtuple('BundlerConfig', [
@@ -98,9 +98,9 @@ Filter = namedtuple('Filter', [
 class Bundler:
     """
     This class handles starting, stopping, and checking on bundler.
-    
+
     Note: Functions beginning with an underscore (except __init__) are private internal functions
-    that are not meant to be called directly. 
+    that are not meant to be called directly.
     """
     def __init__(self, bin_dir, log_dir, dry=False, logf=None):
         """
@@ -121,12 +121,12 @@ class Bundler:
         self.activated = False
 
     def activate(self, cc_alg, config):
-        """ 
-        Starts all Bundler and CCP processes, and inserts appropriate tc and pcap filters to 
+        """
+        Starts all Bundler and CCP processes, and inserts appropriate tc and pcap filters to
         direct traffic through the Bundler.
 
         :param  cc_alg          (CCAlg object) contains a CCP algorithm and runtime parameters
-        :param  config 
+        :param  config
 
         :raise  BundlerException if any of the processes fail to start.
         :return nothing
@@ -143,7 +143,7 @@ class Bundler:
         self._start_outbox(config)
 
     def update_outgoing_filter(self, new_filter):
-        # todo akshay -- do we need to remove the existing filter?
+        self._remove_all_filters()
         if not self.actiavted:
             raise BundlerException("bundler not active. cannot update filter if bundler is not activated yet.")
         self.shell.expect(self.shell.run(
@@ -178,7 +178,7 @@ class Bundler:
     def check_dead(self):
         """
         Returns True if all components of bundler are dead, False otherwise.
-        
+
         """
         if not self.running_procs:
             return True
@@ -189,9 +189,8 @@ class Bundler:
         return False
 
     def _remove_all_filters(self):
-        # TODO akshay?
         self.shell.expect(self.shell.run(
-            "some commannd string"
+            f"tc filter del dev {iface} root"
         ), "failed to remove all filters")
 
     def _kill_all(self):
@@ -230,7 +229,7 @@ class Bundler:
 
         self.running_logs.append(outfile)
         self.running_procs.append('inbox')
-        
+
     def _add_filters(self, config):
         outfile = self._get_log_path("tc")
 
@@ -258,10 +257,10 @@ class Bundler:
 
     def _start_ccp(self, cc_alg, config):
         """
-        Starts CCP. 
+        Starts CCP.
 
         :param  cc_alg_name  (string) name of the algorithm. must have been compiled already.
-        :param  cc_args      (dictionary) containing argument keys and values to be passed as 
+        :param  cc_args      (dictionary) containing argument keys and values to be passed as
                              command line parameters to ccp
         """
 
@@ -282,7 +281,7 @@ class Bundler:
 
         self.shell.check_proc(cc_alg.name)
         self.shell.check_file('starting CCP', outfile)
-        
+
         self.running_logs.append(outfile)
         self.running_procs.append(cc_alg.name)
 
@@ -315,7 +314,7 @@ def make_filter(
         protocol: str,
         src_portrange: Tuple[int, int],
         dst_portrange: Tuple[int, int],
-    ) -> Tuple[str, Tuple[Tuple[int, int], Tuple[int, int]]]:
+    ) -> Filter:
     """make_filter helps construct a filter for bundler that is amenable to both tc and pcap
 
     :param src_ip should be of the form "x.x.x.x/x"; i.e., to match on all IP addresses
@@ -327,7 +326,7 @@ def make_filter(
 
     # Return Value
     This function returns a filter object that bundler knows how to install.
-    Because tc uses bitmasking to express port ranges, it may not be possible to achieve exactly 
+    Because tc uses bitmasking to express port ranges, it may not be possible to achieve exactly
     the range requested in the parameters. This function does its best to keep as close as possible
     to the ranges during the conversion process. The caller should check the actual port ranges
     generated and make sure they are acceptable, eg.
@@ -379,11 +378,10 @@ def make_filter(
         match ip src {src_ip} \
         match ip dst {dst_ip} \
         match ip sport {sport} {sport_mask} \
-        match dport {dport} {dport_mask} \
+        match ip dport {dport} {dport_mask} \
         flowid 1:2"
 
-    # TODO akshay?
-    pcap_command = ""
+    pcap_command = f"{protocol} and src {src_ip} and dst {dst_ip} and src portrange {sport_range} and dst portrange {dport_range}"
 
     f = Filter(src_ip=src_ip, sport=sport, sport_mask=sport_mask, sport_range=sport_range,
            dst_ip=dst_ip, dport=dport, dport_mask=dport_mask, dport_range=dport_range,
