@@ -136,6 +136,7 @@ class Bundler:
             raise BundlerException("bundler already activated, call deactivate() first")
 
         self.activated = True
+        self.config = config
 
         self._start_inbox(config)
         self._add_filters(config)
@@ -189,6 +190,7 @@ class Bundler:
         return False
 
     def _remove_all_filters(self):
+        iface = self.config.outgoing_iface
         self.shell.expect(self.shell.run(
             f"tc filter del dev {iface} root"
         ), "failed to remove all filters")
