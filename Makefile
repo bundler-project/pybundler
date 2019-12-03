@@ -3,10 +3,10 @@ all: bundler-procs ccp-procs
 bundler-procs: bin/inbox bin/outbox
 	
 bin/inbox: bundler/target/debug/inbox 
-	cp bundler/target/debug/inbox bin/inbox
+	mkdir -p bin && cp bundler/target/debug/inbox bin/inbox
 	
 bin/outbox: bundler/target/debug/outbox
-	cp bundler/target/debug/outbox bin/outbox
+	mkdir -p bin && cp bundler/target/debug/outbox bin/outbox
 
 ccp-procs: nimbus/target/debug/nimbus
 
