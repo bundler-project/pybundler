@@ -14,7 +14,7 @@ rustup.sh:
 	curl https://sh.rustup.rs -sSf > rustup.sh
 
 ~/.cargo/bin/cargo: rustup.sh
-	sh rustup.sh -y
+	sh rustup.sh -y --default-toolchain=nightly
 
 bundler/target/debug/inbox bundler/target/debug/outbox: ~/.cargo/bin/cargo $(shell find bundler/src -name "*.rs")
 	sudo apt update && sudo DEBIAN_FRONTEND=noninteractive apt install -y \
@@ -23,7 +23,7 @@ bundler/target/debug/inbox bundler/target/debug/outbox: ~/.cargo/bin/cargo $(she
 		libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnfnetlink-dev \
 		libdb-dev \
 		bison flex libpcap-dev
-	cd bundler && ~/.cargo/bin/cargo build
+	cd bundler && ~/.cargo/bin/cargo +nightly build
 
 nimbus/target/debug/nimbus: ~/.cargo/bin/cargo $(shell find nimbus/src -name "*.rs")
-	cd nimbus && ~/.cargo/bin/cargo build
+	cd nimbus && ~/.cargo/bin/cargo +nightly build
