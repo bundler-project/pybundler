@@ -22,7 +22,8 @@ bundler/target/debug/inbox bundler/target/debug/outbox: ~/.cargo/bin/cargo $(she
 		llvm llvm-dev clang libclang-dev \
 		libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnfnetlink-dev \
 		libdb-dev \
-		bison flex libpcap-dev
+		bison flex libpcap-dev \
+		screen
 	cd bundler && ~/.cargo/bin/cargo +nightly build
 
 nimbus/target/debug/nimbus: ~/.cargo/bin/cargo $(shell find nimbus/src -name "*.rs")
