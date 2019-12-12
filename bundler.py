@@ -8,7 +8,7 @@ Example of how to use Bundler API.
 
 >>> from bundler import Bundler, CCAlg, BundlerConfig, Filter, make_filter
 >>>
->>> bundler = Bundler("/path/to/bin/", "/path/to/log", logf=(lambda msg: print(msg)))
+>>> bundler = Bundler("/path/to/bin/", "absolute/path/to/log", logf=(lambda msg: print(msg)))
 >>> cc_alg = CCAlg('nimbus', param="val", param2="val2", param3="val3")
 >>> outgoing_filter = make_filter(...)
 >>> incoming_filter = make_filter(...)
@@ -105,11 +105,14 @@ class Bundler:
     def __init__(self, bin_dir, log_dir, dry=False, logf=None):
         """
         :param bin_dir (string) path to directory where all bundler binaries are located
-        :param log_dir (string) path to directory where all bundler logs can be created
+        :param log_dir (string) *absolute* path to directory where all bundler logs can be created
         :param dry     (boolean) if true, don't actually run any commands
         :param logf    (function str->) given a string message, handles printing or logging it
 
         """
+        if log_dir[0] != "/":
+            raise BundlerException("log_dir must be an *absolute* path (and thus should start with '/')")
+
         self.bin_dir = bin_dir
         self.log_dir = log_dir
 
