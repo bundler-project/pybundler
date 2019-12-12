@@ -8,6 +8,9 @@ bin/inbox: bundler/target/debug/inbox
 bin/outbox: bundler/target/debug/outbox
 	mkdir -p bin && cp bundler/target/debug/outbox bin/outbox
 
+bin/nimbus: nimbus/target/debug/nimbus
+	mkdir -p bin && cp nimbus/target/debug/nimbus bin/nimbus
+
 ccp-procs: nimbus/target/debug/nimbus
 
 rustup.sh:
