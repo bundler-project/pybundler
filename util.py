@@ -43,7 +43,7 @@ class CommandRunner:
         else:
             return subprocess.call(full_cmd, shell=True, **kwargs)
 
-        
+
     def file_exists(self, fname):
         self.expect(
             self.run("ls {}".format(fname)),
@@ -58,19 +58,19 @@ class CommandRunner:
 
     def check_proc(self, proc_name):
         self.expect(
-            self.run("pgrep -f {}".format(proc_name)),
+            self.run("pgrep -f {}".format(proc_name), ignore_out=True),
             'failed to find running process with name \"{}\"'.format(proc_name)
         )
 
     def check_procs(self, proc_regex):
         self.expect(
-            self.run("pgrep -f -c \"{search}\"".format(search=proc_regex), sudo=True),
+            self.run("pgrep -f -a \"{search}\" | grep -v \"pgrep\"".format(search=proc_regex), sudo=True, ignore_out=True),
             'failed to find any of the running processes: \"{}\"'.format(proc_regex)
         )
 
     def check_file(self, grep, where):
         self.expect(
-            self.run("grep \"{}\" {}".format(grep, where)),
+            self.run("grep \"{}\" {}".format(grep, where), ignore_out=True),
             "unable to find search string (\"{}\") in process output file {}".format(
                 grep,
                 where

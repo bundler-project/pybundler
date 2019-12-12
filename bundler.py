@@ -1,4 +1,5 @@
 import os
+import time
 import util
 from collections import namedtuple
 from typing import List, Tuple
@@ -188,19 +189,20 @@ class Bundler:
             return True
         try:
             self.shell.check_procs("|".join(self.running_procs))
-        except BundlerException:
+        except Exception:
             return True
         return False
 
     def _remove_all_filters(self):
         iface = self.config.outgoing_iface
         self.shell.expect(self.shell.run(
-            f"tc filter del dev {iface} root"
+            f"sudo tc filter del dev {iface}"
         ), "failed to remove all filters")
 
     def _kill_all(self):
         proc_regex = "|".join(self.running_procs)
         self.shell.run("pkill -f -9 \"({search})\"".format(search=proc_regex), sudo=True)
+        time.sleep(2)
         if not self.check_dead() and not self.shell.dry:
             raise BundlerException("failed to kill all bundler processes")
         self.running_logs = []
@@ -231,6 +233,8 @@ class Bundler:
             stderr=outfile,
         ), "failed to start send side")
 
+        time.sleep(5)
+
         self.shell.check_proc('inbox')
         self.shell.check_file('Wait for CCP to install datapath program', outfile)
 
@@ -249,7 +253,7 @@ class Bundler:
             stderr=outfile,
         ), "failed to insert bundler traffic tc filter")
 
-        catch_all_filter = "tc filter add dev {iface} parent 1: protocol all prio 7 u32 match 32 0 0 flowid 1:3".format(
+        catch_all_filter = "tc filter add dev {iface} protocol all parent 1: prio 7 u32 match u32 0 0 flowid 1:3".format(
             iface=config.outgoing_iface
         )
         with open(outfile, 'a') as f:
@@ -316,6 +320,7 @@ class Bundler:
         self.running_procs.append('outbox')
 
 def make_filter(
+        iface_name: str,
         src_ip: str,
         dst_ip: str,
         protocol: str,
@@ -377,11 +382,11 @@ def make_filter(
     dport, dport_mask = (s, dport_mask)
 
     tc_command = f"\
-        tc filter add dev 10gp1 \
+        tc filter add dev {iface_name} \
         parent 1: \
-        protocol ip prio 6 \
+        protocol ip \
+        prio 6 \
         u32 \
-        protocol {proto} 0xff \
         match ip src {src_ip} \
         match ip dst {dst_ip} \
         match ip sport {sport} {sport_mask} \
