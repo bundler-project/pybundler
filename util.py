@@ -77,6 +77,15 @@ class CommandRunner:
             )
         )
 
+    def check_file_not(self, grep, where):
+        res = self.run("grep \"{}\" {}".format(grep, where))
+        if self.dry or res == 1:
+            return
+        if res == 0:
+            raise Exception("found \"{}\" in {}".format(grep, where))
+        elif res == 2:
+            raise Exception("missing log file {}", where)
+
     def search_file(self, grep, where):
         self.expect(
             not self.run("grep \"{}\" {}".format(grep, where)),

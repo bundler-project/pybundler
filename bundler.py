@@ -177,7 +177,7 @@ class Bundler:
             raise BundlerException("called check_alive(), but no processes have been started yet")
         self.shell.check_procs("|".join(self.running_procs))
         for outfile in self.running_logs:
-            self.shell.check_file('err', outfile)
+            self.shell.check_file_not('err', outfile)
 
     def check_dead(self):
         """

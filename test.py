@@ -1,6 +1,6 @@
 from bundler import *
 
-bundler = Bundler("/path/to/bin/", "./", logf=(lambda msg: print(msg)), dry=True)
+bundler = Bundler("/path/to/bin/", "/tmp", logf=(lambda msg: print(msg)), dry=True)
 cc_alg = CCAlg("nimbus", arg="val", arg2="val2")
 outgoing_filter = make_filter("1.1.1.1","2.2.2.2","tcp", (4000,5000), (4000,5000))
 incoming_filter = make_filter("2.2.2.2","1.1.1.1","tcp", (4000,5000), (4000,5000))
