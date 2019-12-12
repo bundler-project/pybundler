@@ -214,6 +214,8 @@ class Bundler:
     def _start_inbox(self, config):
         outfile = self._get_log_path("inbox")
 
+        self.shell.expect(self.shell.run("rm -rf /tmp/ccp", sudo=True), "failed to remove ccp unix sockets")
+
         self.shell.expect(self.shell.run(
             "{path} --iface={iface} --port={port} --sample_rate={sample} --qtype={qtype} --buffer={buf}".format(
                 path=self._get_bin_path("inbox"),
