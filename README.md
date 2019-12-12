@@ -21,6 +21,10 @@ Before using this library, you must be follow the steps below to install all of 
 
 3. Take note of the `bin` directory. By default, it is created immediately inside this repository after running make (`pybundler/bin`). You may place it elsewhere, but either way you must supply the full absolute path to the `pybundler` library upon initialization.
 
+4. You may need to make sure NOPASSWD is enabled (for example, the script may internally be trying to start processes with sudo and hanging on a password prompt). 
+Run `sudo visudo` and edit the sudo permissions line to look as follows:
+```%sudo   ALL=(ALL:ALL) ALL```
+
 ## Usage
 
 The following steps describe the high-level API and expected usage of bundler within a script. Please see `bundler.py` for detailed documentation of each class and function, as well as descriptions of the required parameters.
