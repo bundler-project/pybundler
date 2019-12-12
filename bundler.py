@@ -200,7 +200,7 @@ class Bundler:
 
     def _kill_all(self):
         proc_regex = "|".join(self.running_procs)
-        self.shell.run("pkill -9 \"({search})\"".format(search=proc_regex), sudo=True)
+        self.shell.run("pkill -f -9 \"({search})\"".format(search=proc_regex), sudo=True)
         if not self.check_dead() and not self.shell.dry:
             raise BundlerException("failed to kill all bundler processes")
         self.running_logs = []
