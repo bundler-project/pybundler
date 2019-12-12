@@ -58,13 +58,13 @@ class CommandRunner:
 
     def check_proc(self, proc_name):
         self.expect(
-            self.run("pgrep {}".format(proc_name)),
+            self.run("pgrep -f {}".format(proc_name)),
             'failed to find running process with name \"{}\"'.format(proc_name)
         )
 
     def check_procs(self, proc_regex):
         self.expect(
-            self.run("pgrep -c \"{search}\"".format(search=proc_regex), sudo=True),
+            self.run("pgrep -f -c \"{search}\"".format(search=proc_regex), sudo=True),
             'failed to find any of the running processes: \"{}\"'.format(proc_regex)
         )
 
