@@ -1,16 +1,20 @@
 from bundler import *
 
 bundler = Bundler("./bin", "/tmp", logf=(lambda msg: print(msg)), dry=False)
-cc_alg = CCAlg("nimbus",
-    flow_mode = "XTCP",
-    loss_mode = "Bundle",
-    bw_est_mode = "false",
-    bundler_qlen_alpha=100,
-    bundler_qlen_beta=10000,
-    use_switching= "true",
-    pass_through = "false",
-    bundler_qlen = 150,
-)
+#cc_alg = CCAlg("nimbus",
+#    flow_mode = "XTCP",
+#    loss_mode = "Bundle",
+#    bw_est_mode = "false",
+#    bundler_qlen_alpha=100,
+#    bundler_qlen_beta=10000,
+#    use_switching= "true",
+#    pass_through = "false",
+#    bundler_qlen = 150,
+#)
+
+# Attempt to send at a constant rate of 6Mbps with a maximum cwnd of 120 pkts
+cc_alg = CCAlg("const", rate="6", cwnd_cap="120")
+
 outgoing_filter = make_filter("10gp1", "10.1.1.2","10.1.1.5", "tcp", (4000,5000), (4000,5000))
 incoming_filter = make_filter("em2", "10.1.1.5","10.1.1.2", "tcp", (4000,5000), (4000,5000))
 config = BundlerConfig(

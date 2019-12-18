@@ -1,7 +1,7 @@
 all: bundler-procs ccp-procs
 
 bundler-procs: bin/inbox bin/outbox
-ccp-procs: bin/nimbus
+ccp-procs: bin/nimbus bin/const
 	
 bin/inbox: bundler/target/debug/inbox 
 	mkdir -p bin && cp bundler/target/debug/inbox bin/inbox
@@ -11,6 +11,9 @@ bin/outbox: bundler/target/debug/outbox
 
 bin/nimbus: nimbus/target/debug/nimbus
 	mkdir -p bin && cp nimbus/target/debug/nimbus bin/nimbus
+
+bin/const: const/target/debug/const
+	mkdir -p bin && cp const/target/debug/const bin/const
 
 rustup.sh:
 	curl https://sh.rustup.rs -sSf > rustup.sh
@@ -30,3 +33,6 @@ bundler/target/debug/inbox bundler/target/debug/outbox: ~/.cargo/bin/cargo $(she
 
 nimbus/target/debug/nimbus: ~/.cargo/bin/cargo $(shell find nimbus/src -name "*.rs")
 	cd nimbus && ~/.cargo/bin/cargo +nightly build
+
+const/target/debug/const: ~/.cargo/bin/cargo $(shell find const/src -name "*.rs")
+	cd const && ~/.cargo/bin/cargo +nightly build
