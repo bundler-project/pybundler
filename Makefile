@@ -12,8 +12,8 @@ bin/outbox: bundler/target/debug/outbox
 bin/nimbus: nimbus/target/debug/nimbus
 	mkdir -p bin && cp nimbus/target/debug/nimbus bin/nimbus
 
-bin/const: const/target/debug/const
-	mkdir -p bin && cp const/target/debug/const bin/const
+bin/const: const/target/debug/ccp_const
+	mkdir -p bin && cp const/target/debug/ccp_const bin/const
 
 rustup.sh:
 	curl https://sh.rustup.rs -sSf > rustup.sh
@@ -34,5 +34,8 @@ bundler/target/debug/inbox bundler/target/debug/outbox: ~/.cargo/bin/cargo $(she
 nimbus/target/debug/nimbus: ~/.cargo/bin/cargo $(shell find nimbus/src -name "*.rs")
 	cd nimbus && ~/.cargo/bin/cargo +nightly build
 
-const/target/debug/const: ~/.cargo/bin/cargo $(shell find const/src -name "*.rs")
+const/target/debug/ccp_const: ~/.cargo/bin/cargo $(shell find const/src -name "*.rs")
 	cd const && ~/.cargo/bin/cargo +nightly build
+
+clean:
+	rm -rf const/target/ nimbus/target/ bundler/target/ bin/
