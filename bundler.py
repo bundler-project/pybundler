@@ -393,7 +393,7 @@ def make_filter(
         match ip dport {dport} {dport_mask} \
         flowid 1:2"
 
-    pcap_command = f"{protocol} and src {src_ip} and dst {dst_ip} and src portrange {sport_range} and dst portrange {dport_range}"
+    pcap_command = f"{protocol} and src {src_ip} and dst {dst_ip} and src portrange {sport_range[0]}-{sport_range[1]} and dst portrange {dport_range[0]}-{dport_range[1]}"
 
     f = Filter(src_ip=src_ip, sport=sport, sport_mask=sport_mask, sport_range=sport_range,
            dst_ip=dst_ip, dport=dport, dport_mask=dport_mask, dport_range=dport_range,
