@@ -61,14 +61,14 @@ class CCAlg:
         self.kwargs = kwargs
 
 """
-:param outgoing_iface  network interface (eg. eth0) that inbox should attach to
-:param outgoing_filter Filter object describing exactly which outgoing packets should be routed through bundler
-:param incoming_iface  network interface (eg. eth0) that outbox should listen for pkts on
-:param incoming_filter Filter object describing exactly which incoming packets are controlled by a remote bundler
-:param inbox_listen_addr The address, in ip:port format, that the inbox should listen on for reports from the remote outbox
-:param outbox_send_addr The address, in ip:port format, of the remote inbox that the outbox should send rate updates to
-:param initial_sample_rate The initial rate at which bundler will sample packets. Higher data transfer rates allow for higher sampling rates (and thus less overhead) without loss of performance.
-:param qdisc_buffer_size string, eg. "15Mbit" describing total size of the internal bundler queue
+:param outgoing_iface      string -- network interface (eg. eth0) that inbox should attach to
+:param outgoing_filter     Filter -- describes exactly which outgoing packets should be routed through bundler
+:param incoming_iface      string -- network interface (eg. eth0) that outbox should listen for pkts on
+:param incoming_filter     Filter -- describes exactly which incoming packets are controlled by a remote bundler
+:param inbox_listen_addr   string -- the address, in ip:port format, that the inbox should listen on for reports from the remote outbox
+:param outbox_send_addr    string -- The address, in ip:port format, of the remote inbox that the outbox should send rate updates to
+:param initial_sample_rate string -- the initial rate at which bundler will sample packets. Higher data transfer rates allow for higher sampling rates (and thus less overhead) without loss of performance.
+:param qdisc_buffer_size   string -- eg. "15Mbit" describing total size of the internal bundler queue
 """
 BundlerConfig = namedtuple('BundlerConfig', [
     'outgoing_iface',
