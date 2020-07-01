@@ -69,6 +69,7 @@ class CCAlg:
 :param outbox_send_addr    string -- The address, in ip:port format, of the remote inbox that the outbox should send rate updates to
 :param initial_sample_rate string -- the initial rate at which bundler will sample packets. Higher data transfer rates allow for higher sampling rates (and thus less overhead) without loss of performance.
 :param qdisc_buffer_size   string -- eg. "15Mbit" describing total size of the internal bundler queue
+:param qtype               string -- the type of queueing discipline that bundler uses to schedule packets (fifo|fq_codel|wfq_codel|fq|sfq|prio). to improve fairness/FCTs between short and long flows, use "sfq". other disciplines require additional setup.
 """
 BundlerConfig = namedtuple('BundlerConfig', [
     'outgoing_iface',
@@ -79,6 +80,7 @@ BundlerConfig = namedtuple('BundlerConfig', [
     'outbox_send_addr',
     'initial_sample_rate',
     'qdisc_buffer_size',
+    'qtype'
 ])
 
 Filter = namedtuple('Filter', [
@@ -224,7 +226,7 @@ class Bundler:
                 iface=config.outgoing_iface,
                 port=config.inbox_listen_addr.split(":")[1],
                 sample=config.initial_sample_rate,
-                qtype="prio",
+                qtype=config.qtype,
                 buf=config.qdisc_buffer_size,
             ),
             sudo=True,

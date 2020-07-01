@@ -26,6 +26,7 @@ config = BundlerConfig(
     outbox_send_addr='10.1.1.5:28317',
     initial_sample_rate=128,
     qdisc_buffer_size='15Mbit',
+    qtype="sfq",
 )
 bundler.activate(cc_alg, config)
 
